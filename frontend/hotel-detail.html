@@ -107,7 +107,7 @@
     }
     .booking-sidebar-title { font-family: var(--font-serif); font-size: 1.2rem; font-weight: 700; margin-bottom: 1.25rem; }
     .price-summary { background: var(--color-surface-2); border-radius: var(--radius-md); padding: 1rem; margin: 1rem 0; }
-    .price-row { display: flex; justify-content: space-between; font-size: 0.875rem; padding: 0.4rem 0; color: var(--color-text-muted; }
+    .price-row { display: flex; justify-content: space-between; font-size: 0.875rem; padding: 0.4rem 0; color: var(--color-text-muted); }
     .price-row.total { color: var(--color-text); font-weight: 700; border-top: 1px solid var(--color-border); margin-top: 0.5rem; padding-top: 0.75rem; font-size: 1rem; }
     .selected-room-info { background: var(--color-primary-glow); border: 1px solid rgba(201,169,110,0.2); border-radius: var(--radius-md); padding: 0.875rem; margin-bottom: 1rem; font-size: 0.875rem; }
     .selected-room-info strong { color: var(--color-primary); display: block; margin-bottom: 0.25rem; }
@@ -244,6 +244,13 @@
 
   if (!hotelId) { window.location.href = 'hotels.html'; }
 
+  function refreshRoomAvailability() {
+    updatePrice();
+    if (document.getElementById('tab-rooms').classList.contains('active')) {
+      loadRooms();
+    }
+  }
+
   function showTab(tab) {
     document.querySelectorAll('.tab-btn').forEach((b, i) => {
       const tabs = ['overview', 'rooms', 'amenities'];
@@ -290,8 +297,9 @@
       const t2 = new Date(); t2.setDate(today.getDate() + 3);
       document.getElementById('checkIn').value = t1.toISOString().split('T')[0];
       document.getElementById('checkOut').value = t2.toISOString().split('T')[0];
-      document.getElementById('checkIn').addEventListener('change', updatePrice);
-      document.getElementById('checkOut').addEventListener('change', updatePrice);
+      document.getElementById('checkIn').addEventListener('change', refreshRoomAvailability);
+      document.getElementById('checkOut').addEventListener('change', refreshRoomAvailability);
+      document.getElementById('guests').addEventListener('change', refreshRoomAvailability);
     } catch (e) {
       console.error(e);
     }
@@ -409,10 +417,17 @@
         specialRequests: document.getElementById('specialRequests').value
       });
       closeModal();
-      const ref = res.data?.data?.bookingReference;
-      showToast(`Booking confirmed! Ref: ${ref}`, 'success');
+      const booking = res.data?.data;
+      const ref = booking?.bookingReference;
+      const status = booking?.status || 'PENDING';
+      const isConfirmed = status === 'CONFIRMED';
+      const headline = isConfirmed ? 'Booking confirmed!' : 'Booking request submitted!';
+      const detail = isConfirmed
+        ? 'Your stay is confirmed.'
+        : `Your booking is currently ${status}.`;
+      showToast(`${headline} Ref: ${ref}`, 'success');
       document.getElementById('bookingAlert').innerHTML = 
-        `<div class="alert alert-success">✅ Booking confirmed! Reference: <strong>${ref}</strong>. Check your email for details.</div>`;
+        `<div class="alert alert-success">✅ ${detail} Reference: <strong>${ref}</strong>.</div>`;
       setTimeout(() => window.location.href = 'dashboard.html', 2500);
     } catch (e) {
       const msg = e.response?.data?.message || 'Booking failed. Please try again.';

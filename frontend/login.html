@@ -148,7 +148,7 @@
 <script src="js/auth.js"></script>
 <script>
   // Redirect if already logged in
-  if (Auth.isLoggedIn()) window.location.href = 'dashboard.html';
+  if (Auth.isLoggedIn()) window.location.href = Auth.getLandingPage();
 
   function togglePassword(id, btn) {
     const input = document.getElementById(id);
@@ -193,7 +193,7 @@
       const data = res.data?.data;
       if (data?.token) {
         Auth.save(data);
-        window.location.href = 'dashboard.html';
+        window.location.href = Auth.getLandingPage();
       }
     } catch (err) {
       const msg = err.response?.data?.message || 'Invalid email or password. Please try again.';

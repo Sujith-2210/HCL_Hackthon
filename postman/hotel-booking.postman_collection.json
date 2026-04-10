@@ -1,0 +1,62 @@
+{
+  "info": {
+    "name": "Hotel Booking API",
+    "_postman_id": "2d6a7d48-0d7d-4b8b-a6d6-0d9a7c1f77f1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"customer@hotel.test\",\n  \"password\": \"Password@123\"\n}\n"
+        }
+      }
+    },
+    {
+      "name": "Hotels - Search",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/hotels?city=Chennai&guests=2&checkIn={{checkIn}}&checkOut={{checkOut}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "hotels"],
+          "query": [
+            { "key": "city", "value": "Chennai" },
+            { "key": "guests", "value": "2" },
+            { "key": "checkIn", "value": "{{checkIn}}" },
+            { "key": "checkOut", "value": "{{checkOut}}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Bookings - Create",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/bookings", "host": ["{{baseUrl}}"], "path": ["api", "bookings"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"checkIn\": \"{{checkIn}}\",\n  \"checkOut\": \"{{checkOut}}\",\n  \"guestCount\": 2\n}\n"
+        }
+      }
+    },
+    {
+      "name": "Bookings - History",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": { "raw": "{{baseUrl}}/api/bookings", "host": ["{{baseUrl}}"], "path": ["api", "bookings"] }
+      }
+    }
+  ]
+}
+

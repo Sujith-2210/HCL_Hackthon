@@ -1,201 +1,170 @@
-# 🏨 Hotel Booking Application
+## Hotel Booking Application
 
-A full-stack Hotel Booking Application built with Java Spring Boot (backend) and HTML/CSS/JavaScript (frontend).
+Production-ready hackathon stack with **HTML/CSS/JS** frontend + **Java Spring Boot** REST API.
 
-## Tech Stack
+### Features
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | HTML5, CSS3, Vanilla JavaScript |
-| Backend | Java 17 + Spring Boot 3.x |
-| Database | MySQL / PostgreSQL |
-| Auth | JWT (JSON Web Tokens) |
-| Email | Spring Mail (SMTP) |
-| Containerization | Docker + Docker Compose |
-| CI/CD | GitHub Actions |
-| API Testing | Postman |
+- **Search hotels** by city and dates (availability uses real date-range overlap)
+- **View hotel details** with room types and amenities
+- **Auth**: register + login (JWT)
+- **Roles**: `CUSTOMER`, `RECEPTIONIST`, `ADMIN`
+- **Bookings**: create, cancel, history
+- **Migrations + seed data** via Flyway
 
----
+### Tech
 
-## Project Structure
+- **Frontend**: `frontend/` (static)
+- **Backend**: `backend/hotel-api/` (Spring Boot)
+- **Database**: MySQL (local baseline), PostgreSQL (Flyway path)
+- **Tools**: Docker, Postman, Git
 
-```
-HCL_Hackathon/
-├── backend/                    # Spring Boot application
-│   ├── src/
-│   │   └── main/
-│   │       ├── java/com/hotel/
-│   │       │   ├── config/         # Security, CORS, JWT config
-│   │       │   ├── controller/     # REST controllers
-│   │       │   ├── dto/            # Data Transfer Objects
-│   │       │   ├── entity/         # JPA Entities
-│   │       │   ├── exception/      # Global exception handling
-│   │       │   ├── repository/     # Spring Data JPA repos
-│   │       │   ├── service/        # Business logic
-│   │       │   └── util/           # Utilities (JWT, etc.)
-│   │       └── resources/
-│   │           └── application.yml
-│   ├── Dockerfile
-│   └── pom.xml
-├── frontend/                   # Static HTML/CSS/JS
-│   ├── index.html              # Landing / Search page
-│   ├── login.html
-│   ├── register.html
-│   ├── hotels.html             # Hotel listing
-│   ├── hotel-detail.html       # Hotel detail + rooms
-│   ├── booking.html            # Booking form
-│   ├── dashboard.html          # User dashboard / history
-│   ├── css/
-│   │   └── style.css
-│   └── js/
-│       ├── api.js              # Centralized API calls
-│       ├── auth.js
-│       ├── hotels.js
-│       ├── booking.js
-│       └── dashboard.js
-├── docker-compose.yml
-├── .github/
-│   └── workflows/
-│       └── ci-cd.yml
-├── schema.sql                  # Database schema
-└── README.md
-```
+### Quick start (Docker)
 
----
-
-## Prerequisites
-
-- Java 17+
-- Maven 3.8+
-- MySQL 8+ or PostgreSQL 14+
-- Node.js (optional, for serving frontend)
-- Docker & Docker Compose
-
----
-
-## Quick Start (Docker)
+Copy env file:
 
 ```bash
-# Clone the repository
-git clone <your-repo-url>
-cd HCL_Hackathon
-
-# Set up environment variables
-cp backend/.env.example backend/.env
-# Edit .env with your database credentials and SMTP settings
-
-# Start all services
-docker-compose up -d
-
-# Access the app
-# Frontend: http://localhost:8080
-# API:      http://localhost:8080/api
+cp .env.example .env
 ```
 
----
-
-## Manual Setup
-
-### 1. Database
-
-```sql
-CREATE DATABASE hotel_booking;
--- Then run schema.sql
-mysql -u root -p hotel_booking < schema.sql
-```
-
-### 2. Backend
+Start everything:
 
 ```bash
-cd backend
-
-# Configure application.yml or set environment variables
-# Run the application
-mvn spring-boot:run
+docker compose up --build
 ```
 
-Backend starts at: `http://localhost:8080`
+Open:
 
-### 3. Frontend
+- **Frontend**: `http://localhost:3000`
+- **API**: `http://localhost:8080`
 
-Open `frontend/index.html` in a browser, or serve with any static file server:
+### Demo users (seed)
+
+Password for all: `Password@123`
+
+- `admin@hotel.test` (ADMIN)
+- `reception@hotel.test` (RECEPTIONIST)
+- `customer@hotel.test` (CUSTOMER)
+
+### API endpoints
+
+| Method | Endpoint | Access | Purpose |
+|---|---|---|---|
+| `POST` | `/api/auth/register` | Public | Register customer |
+| `POST` | `/api/auth/login` | Public | Login and get JWT |
+| `GET` | `/api/hotels?city=&checkIn=&checkOut=&guests=` | Public | Search hotels |
+| `GET` | `/api/hotels/{hotelId}` | Public | Hotel details |
+| `GET` | `/api/hotels/{hotelId}/rooms` | Public | Room options |
+| `GET` | `/api/users/profile` | CUSTOMER / RECEPTIONIST / ADMIN | View own profile |
+| `POST` | `/api/bookings` | CUSTOMER | Create booking |
+| `GET` | `/api/bookings` | CUSTOMER | Customer booking history |
+| `GET` | `/api/bookings/my` | CUSTOMER | Customer booking history (alias used by frontend) |
+| `PATCH` | `/api/bookings/{bookingId}/cancel` | CUSTOMER | Cancel own booking |
+| `DELETE` | `/api/bookings/{bookingId}` | CUSTOMER | Cancel own booking (alias) |
+| `POST` | `/api/payments` | CUSTOMER | Make payment for booking |
+| `GET` | `/api/payments/booking/{bookingId}` | CUSTOMER / RECEPTIONIST / ADMIN | View payment by booking |
+| `GET` | `/api/bookings/all` | RECEPTIONIST / ADMIN | View all bookings |
+| `PATCH` | `/api/bookings/{bookingId}/confirm` | RECEPTIONIST | Confirm booking |
+| `PATCH` | `/api/bookings/{bookingId}/check-in` | RECEPTIONIST | Check-in guest |
+| `PATCH` | `/api/bookings/{bookingId}/check-out` | RECEPTIONIST | Check-out guest |
+| `PATCH` | `/api/bookings/{bookingId}/complete` | RECEPTIONIST | Complete stay |
+| `GET` | `/api/admin/users` | ADMIN | List users |
+| `PATCH` | `/api/admin/users/{userId}/role` | ADMIN | Update user role |
+| `DELETE` | `/api/admin/users/{userId}` | ADMIN | Delete user |
+| `GET` | `/api/admin/hotels` | ADMIN | List hotels |
+| `POST` | `/api/admin/hotels` | ADMIN | Create hotel |
+| `PATCH` | `/api/admin/hotels/{hotelId}` | ADMIN | Update hotel |
+| `DELETE` | `/api/admin/hotels/{hotelId}` | ADMIN | Delete hotel |
+| `GET` | `/api/admin/rooms` | ADMIN | List rooms |
+| `POST` | `/api/admin/rooms` | ADMIN | Create room type |
+| `PATCH` | `/api/admin/rooms/{roomId}` | ADMIN | Update room type |
+| `DELETE` | `/api/admin/rooms/{roomId}` | ADMIN | Delete room type |
+| `GET` | `/api/admin/reports` | ADMIN | System summary metrics |
+
+### Local MySQL run (recommended baseline)
+
+Single command (recommended):
 
 ```bash
-cd frontend
-npx serve .
+./run.sh
 ```
 
----
+Load extra seed data while starting:
 
-## API Endpoints
-
-### Auth
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Register new user |
-| POST | `/api/auth/login` | Login and get JWT |
-| POST | `/api/auth/logout` | Logout |
-
-### Hotels
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/hotels` | Search/list hotels |
-| GET | `/api/hotels/{id}` | Get hotel details |
-| GET | `/api/hotels/{id}/rooms` | Get available rooms |
-
-### Bookings
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/bookings` | Create booking |
-| GET | `/api/bookings/my` | Get my bookings |
-| GET | `/api/bookings/{id}` | Get booking by ID |
-| DELETE | `/api/bookings/{id}` | Cancel booking |
-
-### Users
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/users/profile` | Get user profile |
-| PUT | `/api/users/profile` | Update profile |
-
----
-
-## Environment Variables
-
-```env
-DB_URL=jdbc:mysql://localhost:3306/hotel_booking
-DB_USERNAME=root
-DB_PASSWORD=yourpassword
-JWT_SECRET=your-256-bit-secret
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=your@email.com
-MAIL_PASSWORD=your-app-password
+```bash
+./run.sh --seed
 ```
 
----
+Reset the local MySQL demo DB back to a clean baseline before starting:
 
-## Database Schema
+```bash
+./run.sh --reset
+```
 
-See [`schema.sql`](./schema.sql) for the complete database schema.
+Reset and load richer demo data in one go:
 
----
+```bash
+./run.sh --reset --seed
+```
 
-## GitHub Actions CI/CD
+This starts backend + frontend together and auto-runs payments schema setup.
 
-The pipeline (`.github/workflows/ci-cd.yml`) runs on every push:
-1. Build Maven project
-2. Run unit tests
-3. Build Docker image
-4. Push to Docker Hub
+Use project env file first:
 
----
+```bash
+cp .env.example .env
+```
 
-## Team
+Then start backend with local MySQL (all secrets/config are read from `.env`):
 
-Each member should commit code individually to the repository.
+```bash
+cd backend/hotel-api
+set -a
+source ../../.env
+set +a
+SPRING_DATASOURCE_URL="jdbc:mysql://localhost:3306/hotel_booking?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC" \
+SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME:-root}" \
+SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD:-sujith@2204$}" \
+SPRING_FLYWAY_ENABLED="${SPRING_FLYWAY_ENABLED:-false}" \
+SPRING_JPA_HIBERNATE_DDL_AUTO="${SPRING_JPA_HIBERNATE_DDL_AUTO:-update}" \
+./mvnw spring-boot:run
+```
 
----
+Create payments table (required when Flyway is disabled):
 
-## License
+```bash
+MYSQL_PWD="${SPRING_DATASOURCE_PASSWORD:-sujith@2204$}" mysql -u "${SPRING_DATASOURCE_USERNAME:-root}" hotel_booking < scripts/mysql-create-payments.sql
+```
 
-MIT
+Optional richer seed data:
+
+```bash
+MYSQL_PWD="${SPRING_DATASOURCE_PASSWORD:-sujith@2204$}" mysql -u "${SPRING_DATASOURCE_USERNAME:-root}" hotel_booking < scripts/mysql-seed-more-data.sql
+```
+
+### SerpAPI behavior
+
+- Hotel search uses SerpAPI first when `APP_SERPAPI_KEY` is set.
+- India defaults are applied (`gl=in`, `currency=INR`) unless overridden by env vars.
+- If SerpAPI is unavailable/empty, backend falls back to local DB hotels.
+- Details and rooms support both local UUID hotel IDs and Serp IDs (`serp::<property_token>`).
+- Booking is enabled only for local DB inventory rooms.
+
+### End-to-end smoke checklist
+
+1. Register a customer and login.
+2. Verify dashboard loads bookings and profile.
+3. Search hotels from homepage/hotels page.
+4. Open hotel details and rooms.
+5. Book a local DB hotel room.
+6. Cancel the booking from dashboard.
+7. Create payment and fetch payment by booking ID.
+
+### Availability logic (real-world)
+
+For requested \([checkIn, checkOut)\), a room is considered booked if there exists a `CONFIRMED` booking with:
+
+\[
+existing.checkIn < requested.checkOut \;\; \text{AND} \;\; existing.checkOut > requested.checkIn
+\]
+
+So a room can be unavailable for future days but still available today for other date ranges.

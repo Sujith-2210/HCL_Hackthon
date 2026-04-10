@@ -1,49 +1,46 @@
-version: '3.9'
-
 services:
   db:
-    image: mysql:8.0
-    container_name: hotel_db
-    restart: unless-stopped
+    image: postgres:16
     environment:
-      MYSQL_DATABASE: hotel_booking
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
-      MYSQL_USER: ${DB_USERNAME:-hoteluser}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-hotelpass}
+      POSTGRES_DB: ${POSTGRES_DB:-hotel_booking}
+      POSTGRES_USER: ${POSTGRES_USER:-hotel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hotel}
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - db_data:/var/lib/mysql
-      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
-      retries: 10
+      - pgdata:/var/lib/postgresql/data
 
-  backend:
+  api:
     build:
-      context: ./backend
+      context: ./backend/hotel-api
       dockerfile: Dockerfile
-    container_name: hotel_backend
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
     environment:
-      DB_URL: jdbc:mysql://db:3306/hotel_booking?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      DB_USERNAME: ${DB_USERNAME:-hoteluser}
-      DB_PASSWORD: ${DB_PASSWORD:-hotelpass}
-      JWT_SECRET: ${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
-      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
-      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
-      MAIL_PORT: ${MAIL_PORT:-587}
-      MAIL_USERNAME: ${MAIL_USERNAME:-}
-      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
-      MAIL_FROM: ${MAIL_FROM:-noreply@hotelbooking.com}
+      PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-hotel_booking}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-hotel}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-hotel}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:-dev-secret-change-me-dev-secret-change-me}
+      APP_JWT_ISSUER: ${APP_JWT_ISSUER:-hotel-booking}
+      APP_JWT_EXPIRATION_SECONDS: ${APP_JWT_EXPIRATION_SECONDS:-3600}
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+    depends_on:
+      - db
     ports:
       - "8080:8080"
+
+  web:
+    image: nginx:alpine
+    depends_on:
+      - api
+    ports:
+      - "3000:80"
     volumes:
-      - ./backend/logs:/app/logs
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
 
 volumes:
-  db_data:
+  pgdata:
+

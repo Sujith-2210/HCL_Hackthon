@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reception Panel</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<header class="nav">
+  <div class="nav-brand" onclick="window.location='index.html'">🏨 HotelBooking</div>
+  <div class="nav-actions" id="navActions"></div>
+</header>
+
+<main class="container" style="padding:2rem 1rem;display:grid;gap:1.5rem">
+  <section class="card">
+    <h2>All Bookings</h2>
+    <div id="bookingsList" style="display:grid;gap:0.75rem"></div>
+  </section>
+
+  <section class="card">
+    <h2>Room Availability</h2>
+    <div id="roomsList" style="display:grid;gap:0.75rem"></div>
+  </section>
+</main>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  if (!Auth.isLoggedIn()) window.location.href = 'login.html'
+  if (Auth.getUser()?.role !== 'RECEPTIONIST') window.location.href = Auth.getLandingPage()
+
+  async function loadBookings() {
+    const el = document.getElementById('bookingsList')
+    el.innerHTML = '<div class="loading-overlay">Loading bookings...</div>'
+    try {
+      const res = await API.get('/api/bookings/all')
+      const bookings = res.data?.data || []
+      if (!bookings.length) {
+        el.innerHTML = '<div class="empty-state"><h3>No bookings</h3></div>'
+        return
+      }
+      el.innerHTML = bookings.map(b => `
+        <div class="booking-card">
+          <div>
+            <div><strong>${b.bookingReference}</strong> • ${b.hotelName}</div>
+            <div>${b.checkInDate} → ${b.checkOutDate} • ${b.roomType} • ${b.status}</div>
+          </div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+            <button class="btn btn-sm" onclick="updateStatus('${b.id}','CONFIRMED')">Confirm</button>
+            <button class="btn btn-sm" onclick="updateStatus('${b.id}','CHECKED_IN')">Check-in</button>
+            <button class="btn btn-sm" onclick="updateStatus('${b.id}','COMPLETED')">Check-out</button>
+            <button class="btn btn-danger btn-sm" onclick="updateStatus('${b.id}','CANCELLED')">Cancel</button>
+          </div>
+        </div>
+      `).join('')
+    } catch (e) {
+      el.innerHTML = `<div class="empty-state"><h3>Failed to load bookings</h3><p>${e.response?.data?.message || ''}</p></div>`
+    }
+  }
+
+  async function updateStatus(bookingId, status) {
+    try {
+      await API.patch(`/api/bookings/${bookingId}/status`, { status })
+      await loadBookings()
+    } catch (e) {
+      alert(e.response?.data?.message || 'Status update failed')
+    }
+  }
+
+  async function loadRooms() {
+    const el = document.getElementById('roomsList')
+    el.innerHTML = '<div class="loading-overlay">Loading rooms...</div>'
+    try {
+      const res = await API.get('/api/reception/rooms')
+      const rooms = res.data?.data || []
+      if (!rooms.length) {
+        el.innerHTML = '<div class="empty-state"><h3>No rooms</h3></div>'
+        return
+      }
+      el.innerHTML = rooms.map(r => `
+        <div class="booking-card">
+          <div>
+            <div><strong>${r.roomTypeName}</strong> • ${r.roomLabel}</div>
+            <div>Status: ${r.isActive ? 'Available' : 'Unavailable'}</div>
+          </div>
+          <button class="btn btn-sm" onclick="toggleRoom('${r.roomInventoryId}', ${!r.isActive})">
+            Mark ${r.isActive ? 'Unavailable' : 'Available'}
+          </button>
+        </div>
+      `).join('')
+    } catch (e) {
+      el.innerHTML = `<div class="empty-state"><h3>Failed to load rooms</h3><p>${e.response?.data?.message || ''}</p></div>`
+    }
+  }
+
+  async function toggleRoom(roomInventoryId, isActive) {
+    try {
+      await API.patch(`/api/reception/rooms/${roomInventoryId}/availability`, { isActive })
+      await loadRooms()
+    } catch (e) {
+      alert(e.response?.data?.message || 'Room update failed')
+    }
+  }
+
+  loadBookings()
+  loadRooms()
+</script>
+</body>
+</html>

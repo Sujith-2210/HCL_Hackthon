@@ -212,6 +212,8 @@
 <script>
   // Auth guard
   if (!Auth.isLoggedIn()) window.location.href = 'login.html';
+  const currentUser = Auth.getUser();
+  if (currentUser?.role && currentUser.role !== 'CUSTOMER') window.location.href = Auth.getLandingPage();
 
   let allBookings = [];
   let cancellingId = null;
@@ -324,7 +326,7 @@
             <div class="booking-total">₹${Number(b.totalPrice).toLocaleString('en-IN')}</div>
             <div class="booking-total-label">Total Amount</div>
           </div>
-          ${b.status === 'CONFIRMED' ? `<button class="btn btn-danger btn-sm" onclick="startCancel(${b.id})">Cancel</button>` : ''}
+          ${b.status === 'CONFIRMED' ? `<button class="btn btn-danger btn-sm" onclick="startCancel('${b.id}')">Cancel</button>` : ''}
         </div>
       </div>`).join('');
   }

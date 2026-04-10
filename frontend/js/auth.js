@@ -29,19 +29,35 @@ const Auth = {
   isLoggedIn() {
     const token = this.getToken();
     if (!token) return false;
-    // Basic JWT expiry check
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const payload = this.decodeJwtPayload(token);
+      if (!payload?.exp) return false;
       return payload.exp * 1000 > Date.now();
     } catch {
       return false;
     }
   },
 
+  decodeJwtPayload(token) {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(normalized.length + ((4 - normalized.length % 4) % 4), '=');
+    return JSON.parse(atob(padded));
+  },
+
   logout() {
     localStorage.removeItem('hotel_token');
     localStorage.removeItem('hotel_user');
     window.location.href = 'login.html';
+  },
+
+  getLandingPage() {
+    const role = this.getUser()?.role;
+    if (role === 'ADMIN') return 'admin.html';
+    if (role === 'RECEPTIONIST') return 'reception.html';
+    return 'dashboard.html';
   },
 };
 
@@ -60,8 +76,10 @@ const Auth = {
           ${user?.firstName || 'Account'} <span style="opacity:0.6;margin-left:2px">▾</span>
         </button>
         <div class="dropdown" id="navDropdown">
-          <div class="dropdown-item" onclick="window.location='dashboard.html'">📋 My Bookings</div>
-          <div class="dropdown-item" onclick="window.location='dashboard.html'">👤 Profile</div>
+          <div class="dropdown-item" onclick="window.location='${Auth.getLandingPage()}'">🏠 Dashboard</div>
+          ${user?.role === 'CUSTOMER' ? `<div class="dropdown-item" onclick="window.location='dashboard.html'">📋 My Bookings</div>` : ''}
+          ${user?.role === 'RECEPTIONIST' ? `<div class="dropdown-item" onclick="window.location='reception.html'">🏨 Reception Panel</div>` : ''}
+          ${user?.role === 'ADMIN' ? `<div class="dropdown-item" onclick="window.location='admin.html'">🛠️ Admin Panel</div>` : ''}
           <div class="dropdown-divider"></div>
           <div class="dropdown-item danger" onclick="Auth.logout()">🚪 Sign Out</div>
         </div>

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<header class="nav">
+  <div class="nav-brand" onclick="window.location='index.html'">🏨 HotelBooking</div>
+  <div class="nav-actions" id="navActions"></div>
+</header>
+
+<main class="container" style="padding:2rem 1rem;display:grid;gap:1.5rem">
+  <section class="card">
+    <h2>Reports</h2>
+    <div id="reportsBox">Loading...</div>
+  </section>
+
+  <section class="card">
+    <h2>Hotels</h2>
+    <form id="hotelForm" style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.5rem;margin-bottom:1rem">
+      <input class="form-control" id="hName" placeholder="Name" required />
+      <input class="form-control" id="hCity" placeholder="City" required />
+      <input class="form-control" id="hCountry" placeholder="Country" required />
+      <input class="form-control" id="hAddress" placeholder="Address" required />
+      <input class="form-control" id="hDesc" placeholder="Description" required />
+      <input class="form-control" id="hStars" type="number" min="1" max="5" value="4" required />
+      <button class="btn btn-primary" type="submit" style="grid-column:1/-1">Add Hotel</button>
+    </form>
+    <div id="hotelsList" style="display:grid;gap:.75rem"></div>
+  </section>
+
+  <section class="card">
+    <h2>Rooms</h2>
+    <form id="roomForm" style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.5rem;margin-bottom:1rem">
+      <input class="form-control" id="rHotelId" placeholder="Hotel ID" required />
+      <input class="form-control" id="rName" placeholder="Room Name" required />
+      <input class="form-control" id="rDesc" placeholder="Description" required />
+      <input class="form-control" id="rOcc" type="number" min="1" value="2" required />
+      <input class="form-control" id="rPrice" type="number" min="1" value="5000" required />
+      <input class="form-control" id="rCurrency" value="INR" required />
+      <button class="btn btn-primary" type="submit" style="grid-column:1/-1">Add Room</button>
+    </form>
+    <div id="roomsList" style="display:grid;gap:.75rem"></div>
+  </section>
+
+  <section class="card">
+    <h2>Users</h2>
+    <div id="usersList" style="display:grid;gap:.75rem"></div>
+  </section>
+</main>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  if (!Auth.isLoggedIn()) window.location.href = 'login.html'
+  if (Auth.getUser()?.role !== 'ADMIN') window.location.href = Auth.getLandingPage()
+
+  async function loadReports() {
+    const res = await API.get('/api/admin/reports')
+    const r = res.data?.data
+    document.getElementById('reportsBox').innerHTML = `
+      <div style="display:flex;gap:1rem;flex-wrap:wrap">
+        <div class="stat-card"><div class="stat-card-val">${r.users}</div><div class="stat-card-label">Users</div></div>
+        <div class="stat-card"><div class="stat-card-val">${r.hotels}</div><div class="stat-card-label">Hotels</div></div>
+        <div class="stat-card"><div class="stat-card-val">${r.rooms}</div><div class="stat-card-label">Rooms</div></div>
+        <div class="stat-card"><div class="stat-card-val">${r.bookings}</div><div class="stat-card-label">Bookings</div></div>
+      </div>`
+  }
+
+  async function loadHotels() {
+    const res = await API.get('/api/admin/hotels')
+    const hotels = res.data?.data || []
+    document.getElementById('hotelsList').innerHTML = hotels.map(h => `
+      <div class="booking-card">
+        <div><strong>${h.name}</strong> • ${h.city}, ${h.country} • ⭐ ${h.starRating}<br/><small>${h.id}</small></div>
+        <button class="btn btn-danger btn-sm" onclick="deleteHotel('${h.id}')">Delete</button>
+      </div>
+    `).join('')
+  }
+
+  async function loadRooms() {
+    const res = await API.get('/api/admin/rooms')
+    const rooms = res.data?.data || []
+    document.getElementById('roomsList').innerHTML = rooms.map(r => `
+      <div class="booking-card">
+        <div><strong>${r.name}</strong> • ${r.basePricePerNight} ${r.currency} • max ${r.maxOccupancy}<br/><small>${r.id}</small></div>
+        <button class="btn btn-danger btn-sm" onclick="deleteRoom('${r.id}')">Delete</button>
+      </div>
+    `).join('')
+  }
+
+  async function loadUsers() {
+    const res = await API.get('/api/admin/users')
+    const users = res.data?.data || []
+    document.getElementById('usersList').innerHTML = users.map(u => `
+      <div class="booking-card">
+        <div><strong>${u.fullName}</strong> • ${u.email} • ${u.role}</div>
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <select class="form-control" id="role-${u.id}">
+            <option ${u.role === 'CUSTOMER' ? 'selected' : ''}>CUSTOMER</option>
+            <option ${u.role === 'RECEPTIONIST' ? 'selected' : ''}>RECEPTIONIST</option>
+            <option ${u.role === 'ADMIN' ? 'selected' : ''}>ADMIN</option>
+          </select>
+          <button class="btn btn-sm" onclick="updateRole('${u.id}')">Update</button>
+        </div>
+      </div>
+    `).join('')
+  }
+
+  async function deleteHotel(id) {
+    await API.delete(`/api/admin/hotels/${id}`)
+    await loadHotels()
+  }
+  async function deleteRoom(id) {
+    await API.delete(`/api/admin/rooms/${id}`)
+    await loadRooms()
+  }
+  async function updateRole(id) {
+    const role = document.getElementById(`role-${id}`).value
+    await API.patch(`/api/admin/users/${id}/role`, { role })
+    await loadUsers()
+  }
+
+  document.getElementById('hotelForm').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    await API.post('/api/admin/hotels', {
+      name: hName.value.trim(),
+      description: hDesc.value.trim(),
+      address: hAddress.value.trim(),
+      city: hCity.value.trim(),
+      country: hCountry.value.trim(),
+      starRating: Number(hStars.value)
+    })
+    e.target.reset()
+    hStars.value = 4
+    await loadHotels()
+    await loadReports()
+  })
+
+  document.getElementById('roomForm').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    await API.post('/api/admin/rooms', {
+      hotelId: rHotelId.value.trim(),
+      name: rName.value.trim(),
+      description: rDesc.value.trim(),
+      maxOccupancy: Number(rOcc.value),
+      basePricePerNight: Number(rPrice.value),
+      currency: rCurrency.value.trim()
+    })
+    e.target.reset()
+    rOcc.value = 2
+    rPrice.value = 5000
+    rCurrency.value = 'INR'
+    await loadRooms()
+    await loadReports()
+  })
+
+  Promise.all([loadReports(), loadHotels(), loadRooms(), loadUsers()])
+</script>
+</body>
+</html>

@@ -190,14 +190,6 @@
         </div>
 
         <div class="filter-section">
-          <div class="filter-section-title">Data Source</div>
-          <div class="filter-options">
-            <label class="filter-option"><input type="radio" name="source" value="db" checked/> Our Hotels</label>
-            <label class="filter-option"><input type="radio" name="source" value="serpapi"/> 🌐 Google Hotels (Live)</label>
-          </div>
-        </div>
-
-        <div class="filter-section" id="categoryFilter">
           <div class="filter-section-title">Category</div>
           <div class="filter-options">
             <label class="filter-option"><input type="radio" name="category" value=""/> All</label>
@@ -214,15 +206,6 @@
             <label class="filter-option"><input type="radio" name="rating" value="4.5"/> ⭐ 4.5+</label>
             <label class="filter-option"><input type="radio" name="rating" value="4.0"/> ⭐ 4.0+</label>
             <label class="filter-option"><input type="radio" name="rating" value="3.5"/> ⭐ 3.5+</label>
-          </div>
-        </div>
-
-        <div class="filter-section" id="currencyFilter" style="display:none">
-          <div class="filter-section-title">Currency</div>
-          <div class="filter-options">
-            <label class="filter-option"><input type="radio" name="currency" value="INR" checked/> ₹ INR</label>
-            <label class="filter-option"><input type="radio" name="currency" value="USD"/> $ USD</label>
-            <label class="filter-option"><input type="radio" name="currency" value="EUR"/> € EUR</label>
           </div>
         </div>
 
@@ -272,16 +255,6 @@
 <script src="js/auth.js"></script>
 <script>
   let allHotels = [];
-  let currentSource = 'db';
-
-  // Show/hide currency filter based on source
-  document.querySelectorAll('input[name="source"]').forEach(r => {
-    r.addEventListener('change', () => {
-      currentSource = r.value;
-      document.getElementById('currencyFilter').style.display = r.value === 'serpapi' ? 'block' : 'none';
-      document.getElementById('categoryFilter').style.display = r.value === 'db' ? 'block' : 'none';
-    });
-  });
 
   // Read URL params
   const params = new URLSearchParams(window.location.search);
@@ -290,27 +263,7 @@
   if (params.get('checkOut')) document.getElementById('searchCheckOut').value = params.get('checkOut');
   if (params.get('guests')) document.getElementById('searchGuests').value = params.get('guests');
 
-  // Set defaults for dates if not provided
-  if (!document.getElementById('searchCheckIn').value) {
-    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-    document.getElementById('searchCheckIn').value = tomorrow.toISOString().split('T')[0];
-  }
-  if (!document.getElementById('searchCheckOut').value) {
-    const dayAfter = new Date(); dayAfter.setDate(dayAfter.getDate() + 3);
-    document.getElementById('searchCheckOut').value = dayAfter.toISOString().split('T')[0];
-  }
-
   async function doSearch() {
-    const source = document.querySelector('input[name="source"]:checked')?.value || 'db';
-    if (source === 'serpapi') {
-      await loadSerpApiHotels();
-    } else {
-      await loadDbHotels();
-    }
-  }
-
-  // ---- Database Hotels (existing) ----
-  async function loadDbHotels() {
     const city = document.getElementById('searchCity').value;
     const checkIn = document.getElementById('searchCheckIn').value;
     const checkOut = document.getElementById('searchCheckOut').value;
@@ -324,19 +277,23 @@
     if (guests) qs.set('guests', guests);
     if (category) qs.set('category', category);
 
+    await loadHotels(qs.toString());
+  }
+
+  async function loadHotels(queryString) {
     document.getElementById('hotelsList').innerHTML = `
       <div class="loading-overlay"><div class="spinner" style="width:32px;height:32px;border-width:3px"></div>Searching hotels...</div>`;
     try {
-      const res = await API.get('/api/hotels' + (qs.toString() ? '?' + qs.toString() : ''));
+      const res = await API.get('/api/hotels' + (queryString ? '?' + queryString : ''));
       allHotels = res.data?.data || [];
-      renderDbHotels(allHotels);
+      renderHotels(allHotels);
     } catch (e) {
       document.getElementById('hotelsList').innerHTML =
         '<div class="empty-state"><div class="empty-state-icon">⚠️</div><h3>Could not load hotels</h3><p>Please ensure the backend is running.</p></div>';
     }
   }
 
-  function renderDbHotels(hotels) {
+  function renderHotels(hotels) {
     const minRating = parseFloat(document.querySelector('input[name="rating"]:checked')?.value || 0);
     const filtered = hotels.filter(h => !minRating || (h.rating || 0) >= minRating);
     document.getElementById('resultsCount').innerHTML = `<strong>${filtered.length}</strong> hotels found`;
@@ -376,115 +333,13 @@
     `).join('');
   }
 
-  // ---- SerpAPI / Google Hotels (LIVE) ----
-  async function loadSerpApiHotels() {
-    const city = document.getElementById('searchCity').value || 'Mumbai';
-    const checkIn = document.getElementById('searchCheckIn').value;
-    const checkOut = document.getElementById('searchCheckOut').value;
-    const guests = document.getElementById('searchGuests').value;
-    const currency = document.querySelector('input[name="currency"]:checked')?.value || 'INR';
-
-    if (!checkIn || !checkOut) {
-      showToast('Please select check-in and check-out dates', 'warning');
-      return;
-    }
-
-    document.getElementById('hotelsList').innerHTML = `
-      <div class="loading-overlay"><div class="spinner" style="width:32px;height:32px;border-width:3px"></div>Searching Google Hotels for "${city}"...</div>`;
-
-    try {
-      const qs = new URLSearchParams({
-        q: `hotels in ${city}`,
-        checkIn, checkOut,
-        adults: guests,
-        currency
-      });
-      const res = await API.get('/api/serpapi/hotels?' + qs.toString());
-      allHotels = res.data?.data || [];
-      renderSerpApiHotels(allHotels, currency);
-    } catch (e) {
-      console.error('SerpAPI search failed:', e);
-      document.getElementById('hotelsList').innerHTML =
-        '<div class="empty-state"><div class="empty-state-icon">⚠️</div><h3>Google Hotels search failed</h3><p>' + (e.message || 'Please try again.') + '</p></div>';
-    }
-  }
-
-  const currencySymbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£' };
-
-  function renderSerpApiHotels(hotels, currency) {
-    const minRating = parseFloat(document.querySelector('input[name="rating"]:checked')?.value || 0);
-    const filtered = hotels.filter(h => !minRating || (h.overallRating || 0) >= minRating);
-    const sym = currencySymbols[currency] || currency + ' ';
-
-    document.getElementById('resultsCount').innerHTML = `<strong>${filtered.length}</strong> hotels from Google Hotels 🌐`;
-
-    if (!filtered.length) {
-      document.getElementById('hotelsList').innerHTML =
-        '<div class="empty-state"><div class="empty-state-icon">🔍</div><h3>No hotels found</h3><p>Try a different city or dates.</p></div>';
-      return;
-    }
-
-    document.getElementById('hotelsList').innerHTML = filtered.map(h => {
-      const stars = h.extractedHotelClass > 0
-        ? '★'.repeat(h.extractedHotelClass) + '☆'.repeat(Math.max(0, 5 - h.extractedHotelClass))
-        : '';
-      const amenityTags = (h.amenities || []).slice(0, 5).map(a => `<span class="amenity-tag">${a}</span>`).join('');
-      const nearbyInfo = (h.nearbyPlaces || []).slice(0, 2).map(p => `${p.name} (${p.duration})`).join(' · ');
-
-      return `
-      <div class="hotel-list-card" onclick="openSerpApiDetail(this)" 
-           data-token="${h.propertyToken}" data-link="${h.link || ''}">
-        <div class="hotel-list-img">
-          <img src="${h.thumbnail || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600'}" 
-               alt="${h.name}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400'"/>
-        </div>
-        <div class="hotel-list-body">
-          <div>
-            <div class="hotel-list-top">
-              <div>
-                <div class="hotel-list-name">${h.name}</div>
-                ${stars ? `<div style="color:var(--color-primary);font-size:0.82rem;margin-top:2px">${stars} ${h.hotelClass || ''}</div>` : ''}
-              </div>
-              <div class="hotel-list-rating">⭐ ${h.overallRating || 'N/A'}${h.reviews ? ` <span style="font-weight:400;opacity:0.7">(${h.reviews.toLocaleString()})</span>` : ''}</div>
-            </div>
-            ${h.description ? `<div style="font-size:0.85rem;color:var(--color-text-muted);margin:0.4rem 0 0.5rem;line-height:1.5">${h.description}</div>` : ''}
-            <div class="hotel-list-amenities">${amenityTags}</div>
-            ${nearbyInfo ? `<div style="font-size:0.78rem;color:var(--color-text-subtle);margin-top:0.4rem">📍 ${nearbyInfo}</div>` : ''}
-          </div>
-          <div class="hotel-list-footer">
-            <div class="hotel-list-price">
-              <div class="hotel-list-price-val">${sym}${h.pricePerNight ? Number(h.pricePerNight).toLocaleString() : 'N/A'}</div>
-              <div class="hotel-list-price-night">per night</div>
-              ${h.totalPrice ? `<div style="font-size:0.78rem;color:var(--color-text-muted)">Total: ${sym}${Number(h.totalPrice).toLocaleString()}</div>` : ''}
-            </div>
-            ${h.link ? `<a class="btn btn-primary" href="${h.link}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Book Now ↗</a>` : '<button class="btn btn-primary" disabled>Details</button>'}
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  function openSerpApiDetail(el) {
-    const link = el.dataset.link;
-    if (link) window.open(link, '_blank');
-  }
-
   function sortHotels() {
     const sort = document.getElementById('sortSelect').value;
     const sorted = [...allHotels];
-    const source = document.querySelector('input[name="source"]:checked')?.value || 'db';
-    const ratingKey = source === 'serpapi' ? 'overallRating' : 'rating';
-
-    if (sort === 'rating') sorted.sort((a, b) => (b[ratingKey] || 0) - (a[ratingKey] || 0));
-    else if (sort === 'price_asc') sorted.sort((a, b) => (a.pricePerNight || 0) - (b.pricePerNight || 0));
-    else if (sort === 'price_desc') sorted.sort((a, b) => (b.pricePerNight || 0) - (a.pricePerNight || 0));
-
-    if (source === 'serpapi') {
-      const currency = document.querySelector('input[name="currency"]:checked')?.value || 'INR';
-      renderSerpApiHotels(sorted, currency);
-    } else {
-      renderDbHotels(sorted);
-    }
+    if (sort === 'rating') sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    else if (sort === 'price_asc') sorted.sort((a, b) => a.pricePerNight - b.pricePerNight);
+    else if (sort === 'price_desc') sorted.sort((a, b) => b.pricePerNight - a.pricePerNight);
+    renderHotels(sorted);
   }
 
   function clearFilters() {
@@ -493,18 +348,8 @@
     doSearch();
   }
 
-  function showToast(message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    container.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-  }
-
   // Initial load
   doSearch();
 </script>
 </body>
 </html>
-

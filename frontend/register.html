@@ -121,7 +121,7 @@
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
 <script>
-  if (Auth.isLoggedIn()) window.location.href = 'dashboard.html';
+  if (Auth.isLoggedIn()) window.location.href = Auth.getLandingPage();
 
   function togglePassword(id, btn) {
     const input = document.getElementById(id);
