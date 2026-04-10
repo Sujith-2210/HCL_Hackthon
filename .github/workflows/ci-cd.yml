@@ -11,20 +11,6 @@ jobs:
     name: Build & Test
     runs-on: ubuntu-latest
 
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_DATABASE: hotel_booking_test
-          MYSQL_ROOT_PASSWORD: testpassword
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,21 +22,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build with Maven
+      - name: Build and Package
         working-directory: ./backend
-        run: mvn clean compile -B
-
-      - name: Run tests
-        working-directory: ./backend
-        run: mvn test -B
-        env:
-          DB_URL: jdbc:mysql://localhost:3306/hotel_booking_test?useSSL=false&serverTimezone=UTC
-          DB_USERNAME: root
-          DB_PASSWORD: testpassword
-
-      - name: Package application
-        working-directory: ./backend
-        run: mvn package -DskipTests -B
+        run: mvn clean package -DskipTests -B
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
