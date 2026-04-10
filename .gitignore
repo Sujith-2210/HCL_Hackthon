@@ -1,0 +1,31 @@
+# Compiled output
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.suo
+*.user
+
+# Environment files (secrets)
+.env
+*.env
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+
+# Docker
+docker-compose.override.yml
+
+# Documentation (local only)
+ARCHITECTURE.md

@@ -1,0 +1,68 @@
+spring:
+  application:
+    name: hotel-booking
+
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/hotel_booking?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:9029}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  mvc:
+    static-path-pattern: /**
+
+  web:
+    resources:
+      static-locations: classpath:/static/
+
+  thymeleaf:
+    check-template-location: false
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+    include-binding-errors: always
+
+logging:
+  level:
+    com.hotel: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN
+  file:
+    name: logs/hotel-booking.log
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{HH:mm:ss} %-5level %logger{36} - %msg%n"
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    expiration-ms: ${JWT_EXPIRATION:86400000}  # 24 hours
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:8080}
+  email:
+    from: ${MAIL_FROM:noreply@hotelbooking.com}
+  serpapi:
+    api-key: ${SERPAPI_KEY:aa71d6868ee70fb9e3e9fe49d9d92051ebd9867de9fc2714276937d8f936e842}

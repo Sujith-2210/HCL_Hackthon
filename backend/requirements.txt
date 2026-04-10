@@ -1,0 +1,15 @@
+# Hotel Booking Application – Backend Requirements
+# (This file documents Java/Maven dependencies for reference)
+# Actual dependencies are managed in backend/pom.xml
+
+Spring Boot 3.2.4
+Java 17
+MySQL Connector J (runtime)
+PostgreSQL Driver (runtime)
+Spring Data JPA
+Spring Security
+Spring Validation
+Spring Mail
+JJWT 0.12.5 (JWT authentication)
+Lombok
+Spring Boot Test + H2 (test scope)
